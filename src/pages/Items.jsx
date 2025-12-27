@@ -10,7 +10,6 @@ function Items() {
     name: '',
     code: '',
     category: '',
-    unit: '',
     purchasePrice: '',
     salePrice: '',
   })
@@ -31,7 +30,6 @@ function Items() {
       name: formData.name,
       code: formData.code,
       category: formData.category,
-      unit: formData.unit,
       purchasePrice: parseFloat(formData.purchasePrice),
       salePrice: parseFloat(formData.salePrice),
     }
@@ -56,7 +54,6 @@ function Items() {
       name: '',
       code: '',
       category: '',
-      unit: '',
       purchasePrice: '',
       salePrice: '',
     })
@@ -69,7 +66,6 @@ function Items() {
       name: item.name,
       code: item.code,
       category: item.category,
-      unit: item.unit,
       purchasePrice: item.purchasePrice.toString(),
       salePrice: item.salePrice.toString(),
     })
@@ -116,7 +112,6 @@ function Items() {
                 <th>Code</th>
                 <th>Name</th>
                 <th>Category</th>
-                <th>Unit</th>
                 <th>Purchase Price</th>
                 <th>Sale Price</th>
                 <th>Actions</th>
@@ -128,7 +123,6 @@ function Items() {
                   <td>{item.code}</td>
                   <td>{item.name}</td>
                   <td>{item.category}</td>
-                  <td>{item.unit}</td>
                   <td>PKR {item.purchasePrice.toFixed(2)}</td>
                   <td>PKR {item.salePrice.toFixed(2)}</td>
                   <td>
@@ -191,15 +185,6 @@ function Items() {
                   className="form-input"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Unit (e.g., kg, pcs, liter)</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={formData.unit}
-                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                 />
               </div>
               <div className="form-group">

@@ -80,7 +80,6 @@ function ClosingStock() {
                 <th>Item Code</th>
                 <th>Item Name</th>
                 <th>Category</th>
-                <th>Unit</th>
                 <th>Current Stock</th>
                 <th>Purchase Price</th>
                 <th>Sale Price</th>
@@ -107,9 +106,8 @@ function ClosingStock() {
                     <td>{item.code}</td>
                     <td>{item.name}</td>
                     <td>{item.category}</td>
-                    <td>{item.unit}</td>
                     <td style={{ fontWeight: 'bold', color: statusColor }}>
-                      {item.currentStock} {item.unit}
+                      {item.currentStock}
                     </td>
                     <td>PKR {item.purchasePrice.toFixed(2)}</td>
                     <td>PKR {item.salePrice.toFixed(2)}</td>
