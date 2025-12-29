@@ -31,14 +31,18 @@ function StockPurchase() {
     loadData()
   }, [])
 
-  const loadData = () => {
-    setItems(getItems())
-    setPurchases(getPurchases())
+  const loadData = async () => {
+    const [loadedItems, loadedPurchases] = await Promise.all([
+      getItems(),
+      getPurchases()
+    ])
+    setItems(loadedItems)
+    setPurchases(loadedPurchases)
   }
 
-  const generateUniqueInvoiceNumber = () => {
+  const generateUniqueInvoiceNumber = async () => {
     // Always get fresh data from storage
-    const currentPurchases = getPurchases()
+    const currentPurchases = await getPurchases()
     const existingNumbers = new Set()
     
     // Collect all existing invoice numbers
@@ -132,7 +136,7 @@ function StockPurchase() {
     setEditValues({ quantity: '', price: '' })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (purchaseItems.length === 0) {
       alert('Please add at least one item')
@@ -155,11 +159,11 @@ function StockPurchase() {
             }
           : p
       )
-      savePurchases(updatedPurchases)
+      await savePurchases(updatedPurchases)
       setEditingPurchase(null)
     } else {
       // Generate unique invoice number on save for new purchase
-      const invoiceNumber = generateUniqueInvoiceNumber()
+      const invoiceNumber = await generateUniqueInvoiceNumber()
       const newPurchase = {
         id: Date.now().toString(),
         invoiceNumber: invoiceNumber,
@@ -171,10 +175,10 @@ function StockPurchase() {
         createdAt: new Date().toISOString(),
       }
       const updatedPurchases = [newPurchase, ...purchases]
-      savePurchases(updatedPurchases)
+      await savePurchases(updatedPurchases)
     }
     
-    loadData()
+    await loadData()
     resetForm()
     setShowModal(false)
   }

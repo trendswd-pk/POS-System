@@ -8,6 +8,7 @@ function Sale() {
   const [showModal, setShowModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [saleItems, setSaleItems] = useState([])
+  const [filteredItems, setFilteredItems] = useState([])
   const [formData, setFormData] = useState({
     customerName: '',
     invoiceNumber: '',
@@ -31,14 +32,40 @@ function Sale() {
     loadData()
   }, [])
 
-  const loadData = () => {
-    setItems(getItems())
-    setSales(getSales())
+  useEffect(() => {
+    const updateFilteredItems = async () => {
+      const filtered = []
+      for (const item of items) {
+        const stock = await getCurrentStock(item.id)
+        if (stock > 0) {
+          if (!itemSearch.trim()) {
+            filtered.push(item)
+          } else {
+            const searchLower = itemSearch.toLowerCase()
+            if (item.code.toLowerCase().includes(searchLower) || 
+                item.name.toLowerCase().includes(searchLower)) {
+              filtered.push(item)
+            }
+          }
+        }
+      }
+      setFilteredItems(filtered)
+    }
+    updateFilteredItems()
+  }, [items, itemSearch])
+
+  const loadData = async () => {
+    const [loadedItems, loadedSales] = await Promise.all([
+      getItems(),
+      getSales()
+    ])
+    setItems(loadedItems)
+    setSales(loadedSales)
   }
 
-  const generateUniqueInvoiceNumber = () => {
+  const generateUniqueInvoiceNumber = async () => {
     // Always get fresh data from storage
-    const currentSales = getSales()
+    const currentSales = await getSales()
     const existingNumbers = new Set()
     
     // Collect all existing invoice numbers
@@ -65,14 +92,14 @@ function Sale() {
     return `SV-${randomNumber.toString().padStart(5, '0')}`
   }
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (!selectedItem.itemId || !selectedItem.quantity || !selectedItem.price) {
       alert('Please fill all fields')
       return
     }
 
     const item = items.find(i => i.id === selectedItem.itemId)
-    const currentStock = getCurrentStock(selectedItem.itemId)
+    const currentStock = await getCurrentStock(selectedItem.itemId)
     const requestedQty = parseInt(selectedItem.quantity)
     const existingItemIndex = saleItems.findIndex(s => s.itemId === selectedItem.itemId)
     
@@ -124,11 +151,11 @@ function Sale() {
     setEditValues({ quantity: item.quantity.toString(), price: item.price.toString() })
   }
 
-  const handleSaveEdit = (index) => {
+  const handleSaveEdit = async (index) => {
     const updatedItems = [...saleItems]
     const newQuantity = parseInt(editValues.quantity)
     const newPrice = parseFloat(editValues.price)
-    const currentStock = getCurrentStock(updatedItems[index].itemId)
+    const currentStock = await getCurrentStock(updatedItems[index].itemId)
     
     if (newQuantity > currentStock) {
       alert(`Insufficient stock! Available: ${currentStock}`)
@@ -151,7 +178,7 @@ function Sale() {
     setEditValues({ quantity: '', price: '' })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (saleItems.length === 0) {
       alert('Please add at least one item')
@@ -174,11 +201,11 @@ function Sale() {
             }
           : s
       )
-      saveSales(updatedSales)
+      await saveSales(updatedSales)
       setEditingSale(null)
     } else {
       // Generate unique invoice number on save for new sale
-      const invoiceNumber = generateUniqueInvoiceNumber()
+      const invoiceNumber = await generateUniqueInvoiceNumber()
       const newSale = {
         id: Date.now().toString(),
         customerName: formData.customerName,
@@ -190,10 +217,10 @@ function Sale() {
         createdAt: new Date().toISOString(),
       }
       const updatedSales = [newSale, ...sales]
-      saveSales(updatedSales)
+      await saveSales(updatedSales)
     }
     
-    loadData()
+    await loadData()
     resetForm()
     setShowModal(false)
   }
@@ -376,9 +403,9 @@ function Sale() {
     return item ? item.salePrice : 0
   }
 
-  const handleItemSelect = (itemId) => {
+  const handleItemSelect = async (itemId) => {
     const item = items.find(i => i.id === itemId)
-    const currentStock = getCurrentStock(itemId)
+    const currentStock = await getCurrentStock(itemId)
     setSelectedItem({
       ...selectedItem,
       itemId: itemId,
@@ -399,17 +426,6 @@ function Sale() {
     }
   }
 
-  const filteredItems = items.filter(item => {
-    const stock = getCurrentStock(item.id)
-    if (stock <= 0) return false // Only show items with stock > 0
-    
-    if (!itemSearch.trim()) {
-      return true // Show all items when search is empty
-    }
-    const searchLower = itemSearch.toLowerCase()
-    return item.code.toLowerCase().includes(searchLower) || 
-           item.name.toLowerCase().includes(searchLower)
-  })
 
   const filteredSales = sales.filter(sale => {
     const searchLower = searchTerm.toLowerCase()
@@ -734,7 +750,6 @@ function Sale() {
                         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                       }}>
                         {filteredItems.map((item) => {
-                          const stock = getCurrentStock(item.id)
                           return (
                             <div
                               key={item.id}

@@ -16,37 +16,40 @@ function Users() {
   })
 
   useEffect(() => {
-    loadUsers()
-    // Create default admin user if no users exist
-    const existingUsers = getUsers()
-    if (existingUsers.length === 0) {
-      const adminUser = {
-        id: Date.now().toString(),
-        username: 'admin',
-        password: 'admin123',
-        fullName: 'Administrator',
-        permissions: {
-          items: true,
-          stockPurchase: true,
-          stockReturn: true,
-          sale: true,
-          saleReturn: true,
-          closingStock: true,
-          users: true,
-        },
-        createdAt: new Date().toISOString(),
+    const initialize = async () => {
+      await loadUsers()
+      // Create default admin user if no users exist
+      const existingUsers = await getUsers()
+      if (existingUsers.length === 0) {
+        const adminUser = {
+          id: Date.now().toString(),
+          username: 'admin',
+          password: 'admin123',
+          fullName: 'Administrator',
+          permissions: {
+            items: true,
+            stockPurchase: true,
+            stockReturn: true,
+            sale: true,
+            saleReturn: true,
+            closingStock: true,
+            users: true,
+          },
+          createdAt: new Date().toISOString(),
+        }
+        await saveUsers([adminUser])
+        setUsers([adminUser])
       }
-      saveUsers([adminUser])
-      setUsers([adminUser])
     }
+    initialize()
   }, [])
 
-  const loadUsers = () => {
-    const loadedUsers = getUsers()
+  const loadUsers = async () => {
+    const loadedUsers = await getUsers()
     setUsers(loadedUsers)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     
     if (!formData.username || !formData.password || !formData.fullName) {
@@ -92,7 +95,7 @@ function Users() {
       updatedUsers = [...users, newUser]
     }
 
-    saveUsers(updatedUsers)
+    await saveUsers(updatedUsers)
     setUsers(updatedUsers)
     setShowModal(false)
     resetForm()
@@ -120,10 +123,10 @@ function Users() {
     setShowModal(true)
   }
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       const updatedUsers = users.filter(user => user.id !== id)
-      saveUsers(updatedUsers)
+      await saveUsers(updatedUsers)
       setUsers(updatedUsers)
     }
   }

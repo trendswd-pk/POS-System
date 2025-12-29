@@ -10,15 +10,17 @@ function Login() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // If already logged in, redirect to home
-    const currentUser = getCurrentUser()
-    if (currentUser) {
-      navigate('/')
-    }
+    const initialize = async () => {
+      // If already logged in, redirect to home
+      const currentUser = getCurrentUser()
+      if (currentUser) {
+        navigate('/')
+        return
+      }
 
-    // Create default admin user if no users exist
-    const existingUsers = getUsers()
-    if (existingUsers.length === 0) {
+      // Create default admin user if no users exist
+      const existingUsers = await getUsers()
+      if (existingUsers.length === 0) {
       const adminUser = {
         id: Date.now().toString(),
         username: 'admin',
@@ -35,11 +37,13 @@ function Login() {
         },
         createdAt: new Date().toISOString(),
       }
-      saveUsers([adminUser])
+      await saveUsers([adminUser])
+      }
     }
+    initialize()
   }, [navigate])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
@@ -48,7 +52,7 @@ function Login() {
       return
     }
 
-    const users = getUsers()
+    const users = await getUsers()
     const user = users.find(u => u.username === username && u.password === password)
 
     if (user) {

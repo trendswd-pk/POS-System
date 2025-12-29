@@ -26,8 +26,8 @@ function Items() {
     loadItems()
   }, [])
 
-  const loadItems = () => {
-    const loadedItems = getItems()
+  const loadItems = async () => {
+    const loadedItems = await getItems()
     setItems(loadedItems)
   }
 
@@ -52,7 +52,7 @@ function Items() {
     return nextCode.toString()
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     const newItem = {
       id: editingItem ? editingItem.id : Date.now().toString(),
@@ -72,7 +72,7 @@ function Items() {
       updatedItems = [...items, newItem]
     }
 
-    saveItems(updatedItems)
+    await saveItems(updatedItems)
     setItems(updatedItems)
     setShowModal(false)
     resetForm()
@@ -101,10 +101,10 @@ function Items() {
     setShowModal(true)
   }
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this item?')) {
       const updatedItems = items.filter(item => item.id !== id)
-      saveItems(updatedItems)
+      await saveItems(updatedItems)
       setItems(updatedItems)
     }
   }
@@ -137,11 +137,11 @@ function Items() {
     )
   })
 
-  const getMovementHistory = (itemId) => {
-    const purchases = getPurchases()
-    const stockReturns = getStockReturns()
-    const sales = getSales()
-    const saleReturns = getSaleReturns()
+  const getMovementHistory = async (itemId) => {
+    const purchases = await getPurchases()
+    const stockReturns = await getStockReturns()
+    const sales = await getSales()
+    const saleReturns = await getSaleReturns()
     
     const movements = []
 
@@ -231,9 +231,9 @@ function Items() {
     return movements
   }
 
-  const handleMovementClick = (item) => {
+  const handleMovementClick = async (item) => {
     setSelectedItem(item)
-    const history = getMovementHistory(item.id)
+    const history = await getMovementHistory(item.id)
     setMovementHistory(history)
     setShowMovementModal(true)
   }
