@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { getUsers, saveUsers, defaultPermissions, getCurrentUser } from '../utils/storage'
+import { hashPassword } from '../utils/password'
 import '../App.css'
 
 function Users() {
@@ -52,10 +53,24 @@ function Users() {
 
     const isAdmin = currentUser && currentUser.username === 'admin'
     
+    // Hash password before saving
+    let hashedPassword = formData.password
+    // Only hash if password is not already hashed (for editing, if password changed)
+    const isPasswordChanged = editingUser && formData.password !== editingUser.password
+    const isPasswordHashed = formData.password && (formData.password.startsWith('$2a$') || formData.password.startsWith('$2b$'))
+    
+    if (!isPasswordHashed) {
+      // Hash the password
+      hashedPassword = await hashPassword(formData.password)
+    } else if (editingUser && !isPasswordChanged) {
+      // If editing and password not changed, keep existing hashed password
+      hashedPassword = editingUser.password
+    }
+    
     const newUser = {
       id: editingUser ? editingUser.id : Date.now().toString(),
       username: formData.username,
-      password: formData.password,
+      password: hashedPassword,
       fullName: formData.fullName,
       // Only admin can change permissions, otherwise keep existing permissions
       permissions: isAdmin ? formData.permissions : (editingUser ? editingUser.permissions : formData.permissions),

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { getItems, getSales, saveSales, getCurrentStock } from '../utils/storage'
+import React, { useState, useEffect } from 'react'
+import { getItems, getSales, saveSales, getCurrentStock, clearStockCache } from '../utils/storage'
 import '../App.css'
 
 function Sale() {
@@ -8,7 +8,6 @@ function Sale() {
   const [showModal, setShowModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [saleItems, setSaleItems] = useState([])
-  const [filteredItems, setFilteredItems] = useState([])
   const [formData, setFormData] = useState({
     customerName: '',
     invoiceNumber: '',
@@ -27,57 +26,21 @@ function Sale() {
   const [openMenuId, setOpenMenuId] = useState(null)
   const [viewingSale, setViewingSale] = useState(null)
   const [editingSale, setEditingSale] = useState(null)
-  const itemSearchInputRef = useRef(null)
-  const dropdownRef = useRef(null)
 
   useEffect(() => {
     loadData()
   }, [])
 
-  useEffect(() => {
-    const updateFilteredItems = async () => {
-      if (items.length === 0) {
-        setFilteredItems([])
-        return
-      }
-      
-      const filtered = []
-      for (const item of items) {
-        const stock = await getCurrentStock(item.id)
-        if (stock > 0) {
-          if (!itemSearch.trim()) {
-            filtered.push({ ...item, currentStock: stock })
-          } else {
-            const searchLower = itemSearch.toLowerCase()
-            if (item.code.toLowerCase().includes(searchLower) || 
-                item.name.toLowerCase().includes(searchLower) ||
-                (item.category && item.category.toLowerCase().includes(searchLower))) {
-              filtered.push({ ...item, currentStock: stock })
-            }
-          }
-        }
-      }
-      setFilteredItems(filtered)
+  const filteredItems = items.filter(item => {
+    if (!itemSearch.trim()) {
+      return true // Show all items when search is empty
     }
-    updateFilteredItems()
-  }, [items, itemSearch])
+    const searchLower = itemSearch.toLowerCase()
+    return item.code.toLowerCase().includes(searchLower) || 
+           item.name.toLowerCase().includes(searchLower) ||
+           (item.category && item.category.toLowerCase().includes(searchLower))
+  })
 
-  // Update dropdown position when it shows
-  useEffect(() => {
-    if (showItemDropdown && filteredItems.length > 0 && itemSearchInputRef.current && dropdownRef.current) {
-      try {
-        const inputRect = itemSearchInputRef.current.getBoundingClientRect()
-        const dropdown = dropdownRef.current
-        if (dropdown && inputRect) {
-          dropdown.style.top = `${inputRect.bottom + window.scrollY}px`
-          dropdown.style.left = `${inputRect.left + window.scrollX}px`
-          dropdown.style.width = `${inputRect.width}px`
-        }
-      } catch (error) {
-        console.error('Error positioning dropdown:', error)
-      }
-    }
-  }, [showItemDropdown, filteredItems])
 
   const loadData = async () => {
     const [loadedItems, loadedSales] = await Promise.all([
@@ -245,6 +208,7 @@ function Sale() {
           : s
       )
       await saveSales(updatedSales)
+      clearStockCache() // Clear cache after saving
       setEditingSale(null)
     } else {
       // Generate unique invoice number on save for new sale
@@ -261,6 +225,7 @@ function Sale() {
       }
       const updatedSales = [newSale, ...sales]
       await saveSales(updatedSales)
+      clearStockCache() // Clear cache after saving
     }
     
     await loadData()
@@ -763,7 +728,6 @@ function Sale() {
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
                   <div style={{ flex: 2, position: 'relative' }}>
                     <input
-                      ref={itemSearchInputRef}
                       type="text"
                       className="form-input"
                       placeholder="Search and select item..."
@@ -779,39 +743,35 @@ function Sale() {
                       onBlur={() => setTimeout(() => setShowItemDropdown(false), 200)}
                       onKeyPress={handleKeyPress}
                     />
-                    {showItemDropdown && (
-                      <div 
-                      ref={dropdownRef}
-                      style={{
-                        position: 'fixed',
+                    {showItemDropdown && filteredItems.length > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
                         backgroundColor: 'white',
                         border: '1px solid #ccc',
                         borderRadius: '4px',
                         maxHeight: '200px',
                         overflowY: 'auto',
-                        zIndex: 10000,
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                        minWidth: '300px'
-                      }}
-                      onMouseDown={(e) => e.preventDefault()}
-                      >
-                        {filteredItems.map((item) => {
-                          return (
-                            <div
-                              key={item.id}
-                              onClick={() => handleItemSelect(item.id)}
-                              style={{
-                                padding: '0.75rem',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid #eee'
-                              }}
-                              onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
-                              onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
-                            >
-                              <strong>{item.code}</strong> - {item.name} <span style={{ color: '#666' }}>(Stock: {item.currentStock || 0})</span>
-                            </div>
-                          )
-                        })}
+                        zIndex: 1000,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                      }}>
+                        {filteredItems.map((item) => (
+                          <div
+                            key={item.id}
+                            onClick={() => handleItemSelect(item.id)}
+                            style={{
+                              padding: '0.75rem',
+                              cursor: 'pointer',
+                              borderBottom: '1px solid #eee'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                          >
+                            <strong>{item.code}</strong> - {item.name}
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

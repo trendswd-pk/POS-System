@@ -28,7 +28,9 @@ A complete, production-ready Point of Sale (POS) System for retail shops with fu
 - ✅ **Responsive Design** - Works on desktop and tablet devices
 - ✅ **Cloud Storage** - Supabase integration for data persistence
 - ✅ **User Permissions** - Granular permission system
+- ✅ **Password Security** - Bcrypt password hashing for secure authentication
 - ✅ **Data Export** - View and print transaction history
+- ✅ **Performance Optimized** - Batch operations and caching for fast performance
 
 ## 🚀 Quick Start
 
@@ -57,6 +59,7 @@ A complete, production-ready Point of Sale (POS) System for retail shops with fu
    - Open `setup-database.sql` from this project
    - Copy and paste the entire SQL script
    - Click **Run** to execute
+   - Wait for all queries to complete successfully
 
 4. **Configure Environment Variables**
    - Create `.env.local` file in root directory
@@ -67,12 +70,19 @@ A complete, production-ready Point of Sale (POS) System for retail shops with fu
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
-5. **Start Development Server**
+5. **Hash Existing User Passwords (Optional)**
+   - If you have existing users with plain text passwords, run:
+   ```bash
+   npm run hash-passwords
+   ```
+   - Or use SQL file: Run `hash-existing-passwords.sql` in Supabase SQL Editor
+
+6. **Start Development Server**
    ```bash
    npm run dev
    ```
 
-6. **Access the Application**
+7. **Access the Application**
    - Open `http://localhost:5173` in your browser
    - Login with default credentials:
      - **Username:** `admin`
@@ -85,7 +95,9 @@ Username: admin
 Password: admin123
 ```
 
-⚠️ **IMPORTANT:** Change the admin password immediately after first login!
+⚠️ **IMPORTANT:** 
+- Change the admin password immediately after first login!
+- All passwords are automatically hashed using bcrypt for security
 
 ## 📖 User Guide
 
@@ -133,7 +145,7 @@ Password: admin123
 1. Go to **Users** page
 2. Add new users with:
    - Username
-   - Password
+   - Password (automatically hashed)
    - Full Name
    - Custom Permissions
 3. Edit or delete existing users
@@ -145,7 +157,7 @@ Password: admin123
 pos-system/
 ├── src/
 │   ├── pages/
-│   │   ├── Login.jsx          # Authentication
+│   │   ├── Login.jsx          # Authentication with password hashing
 │   │   ├── Items.jsx           # Product management
 │   │   ├── StockPurchase.jsx   # Purchase orders
 │   │   ├── StockReturn.jsx     # Supplier returns
@@ -154,11 +166,14 @@ pos-system/
 │   │   ├── ClosingStock.jsx    # Stock reports
 │   │   └── Users.jsx           # User management
 │   ├── utils/
-│   │   ├── storage.js          # Data operations
-│   │   └── supabase.js         # Supabase client
+│   │   ├── storage.js          # Data operations (Supabase only)
+│   │   ├── supabase.js         # Supabase client
+│   │   └── password.js         # Password hashing utilities
 │   ├── App.jsx                 # Main app component
 │   └── main.jsx                # Entry point
 ├── setup-database.sql          # Database setup script
+├── hash-existing-passwords.sql # Hash existing passwords (SQL)
+├── hash-existing-users.js      # Hash existing passwords (Node.js)
 ├── package.json
 ├── vite.config.js
 └── README.md
@@ -170,6 +185,7 @@ pos-system/
 - **Build Tool:** Vite 5.0.8
 - **Routing:** React Router DOM 6.20.0
 - **Backend:** Supabase (PostgreSQL)
+- **Password Hashing:** bcryptjs
 - **Styling:** Modern CSS with responsive design
 
 ## 📦 Build for Production
@@ -203,12 +219,27 @@ Run `setup-database.sql` in Supabase SQL Editor. This will:
 - Disable RLS for development
 - Create default admin user
 
-## 🔒 Security Notes
+### Password Hashing
+
+- **New Users:** Passwords are automatically hashed using bcrypt when created
+- **Existing Users:** Run `npm run hash-passwords` to hash existing passwords
+- **Login:** System automatically compares hashed passwords during login
+
+## 🔒 Security Features
+
+- ✅ **Password Hashing** - All passwords stored as bcrypt hashes (salt rounds: 10)
+- ✅ **No Plain Text Storage** - Passwords never stored in plain text
+- ✅ **Secure Authentication** - Bcrypt comparison for login verification
+- ✅ **Cloud Database** - All data stored securely in Supabase
+- ✅ **Environment Variables** - Sensitive credentials in `.env.local` (not committed)
+
+### Security Notes
 
 - Default admin password should be changed immediately
 - For production, consider enabling Row Level Security (RLS) in Supabase
 - Use environment variables for sensitive data
 - Never commit `.env.local` file to version control
+- All passwords are automatically hashed - no manual intervention needed
 
 ## 🐛 Troubleshooting
 
@@ -221,8 +252,13 @@ Run `setup-database.sql` in Supabase SQL Editor. This will:
 ### Login Problems
 - ✅ Use default credentials: `admin` / `admin123`
 - ✅ Check Supabase users table has admin user
-- ✅ Clear browser localStorage if needed
+- ✅ If password not working, run `npm run hash-passwords`
 - ✅ Check browser console for errors
+
+### Password Hashing Issues
+- ✅ Run `npm run hash-passwords` to hash existing passwords
+- ✅ New users automatically have hashed passwords
+- ✅ Check that bcryptjs is installed: `npm list bcryptjs`
 
 ### Blank Page / Build Errors
 - ✅ Run `npm install` to ensure all dependencies installed
@@ -238,9 +274,26 @@ Run `setup-database.sql` in Supabase SQL Editor. This will:
 
 ## 📊 Data Storage
 
-- **Primary Storage:** Supabase PostgreSQL (cloud database)
-- **Fallback:** Browser localStorage (if Supabase not configured)
+- **Storage:** Supabase PostgreSQL (cloud database only)
+- **No LocalStorage:** All data stored in cloud (no browser storage fallback)
 - **Data Persistence:** All data synced to cloud automatically
+- **Backup:** Supabase provides automatic backups
+
+## 🚀 Available Scripts
+
+```bash
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Hash existing user passwords
+npm run hash-passwords
+```
 
 ## 🤝 Contributing
 
@@ -262,6 +315,7 @@ Developed for retail shop management and inventory control.
 
 - Built with [React](https://reactjs.org/)
 - Powered by [Supabase](https://supabase.com/)
+- Password security with [bcryptjs](https://www.npmjs.com/package/bcryptjs)
 - Styled with modern CSS
 
 ## 📞 Support
@@ -271,6 +325,18 @@ For issues, questions, or contributions:
 - Review Supabase dashboard for database issues
 - Inspect network tab for API errors
 - Open an issue on GitHub
+
+## 🔄 Migration Notes
+
+### From localStorage to Supabase
+- This version uses **Supabase only** - no localStorage fallback
+- All data must be in Supabase database
+- Run `setup-database.sql` to initialize database
+
+### Password Hashing Migration
+- Existing users with plain text passwords need to be hashed
+- Run `npm run hash-passwords` or use SQL file
+- After migration, users can still login with original passwords
 
 ---
 

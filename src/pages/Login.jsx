@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getUsers, saveUsers, setCurrentUser, getCurrentUser } from '../utils/storage'
+import { comparePassword } from '../utils/password'
 import '../App.css'
 
 function Login() {
@@ -30,15 +31,33 @@ function Login() {
       const users = await getUsers()
       console.log('All users from database:', users.map(u => ({ username: u.username, id: u.id })))
       
-      const user = users.find(u => u.username === username && u.password === password)
+      const user = users.find(u => u.username === username)
+      
+      if (!user) {
+        console.log('Login failed - User not found')
+        setError('Invalid username or password')
+        return
+      }
 
-      if (user) {
+      // Check if password is hashed (starts with $2a$ or $2b$) or plain text (for migration)
+      const isHashed = user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$'))
+      
+      let passwordMatch = false
+      if (isHashed) {
+        // Compare with hashed password
+        passwordMatch = await comparePassword(password, user.password)
+      } else {
+        // Legacy: compare plain text (for existing users during migration)
+        passwordMatch = user.password === password
+      }
+
+      if (passwordMatch) {
         // Remove password from user object before storing
         const { password: _, ...userWithoutPassword } = user
         setCurrentUser(userWithoutPassword)
         navigate('/')
       } else {
-        console.log('Login failed - User not found or password incorrect')
+        console.log('Login failed - Password incorrect')
         setError('Invalid username or password')
       }
     } catch (error) {

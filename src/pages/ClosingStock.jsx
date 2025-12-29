@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { getItems, getCurrentStock } from '../utils/storage'
+import { getItems, getCurrentStocksBatch } from '../utils/storage'
 import '../App.css'
 
 function ClosingStock() {
@@ -14,12 +14,16 @@ function ClosingStock() {
 
   const loadStockData = async () => {
     const allItems = await getItems()
-    const stockInfo = await Promise.all(
-      allItems.map(async (item) => ({
-        ...item,
-        currentStock: await getCurrentStock(item.id),
-      }))
-    )
+    
+    // Get all stocks in one batch call (much faster!)
+    const itemIds = allItems.map(item => item.id)
+    const stockMap = await getCurrentStocksBatch(itemIds)
+    
+    const stockInfo = allItems.map(item => ({
+      ...item,
+      currentStock: stockMap[item.id] || 0,
+    }))
+    
     setItems(allItems)
     setStockData(stockInfo)
   }
