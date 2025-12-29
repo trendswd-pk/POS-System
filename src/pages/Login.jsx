@@ -10,37 +10,11 @@ function Login() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const initialize = async () => {
-      // If already logged in, redirect to home
-      const currentUser = getCurrentUser()
-      if (currentUser) {
-        navigate('/')
-        return
-      }
-
-      // Create default admin user if no users exist
-      const existingUsers = await getUsers()
-      if (existingUsers.length === 0) {
-      const adminUser = {
-        id: Date.now().toString(),
-        username: 'admin',
-        password: 'admin123',
-        fullName: 'Administrator',
-        permissions: {
-          items: true,
-          stockPurchase: true,
-          stockReturn: true,
-          sale: true,
-          saleReturn: true,
-          closingStock: true,
-          users: true,
-        },
-        createdAt: new Date().toISOString(),
-      }
-      await saveUsers([adminUser])
-      }
+    // If already logged in, redirect to home
+    const currentUser = getCurrentUser()
+    if (currentUser) {
+      navigate('/')
     }
-    initialize()
   }, [navigate])
 
   const handleSubmit = async (e) => {
@@ -52,16 +26,24 @@ function Login() {
       return
     }
 
-    const users = await getUsers()
-    const user = users.find(u => u.username === username && u.password === password)
+    try {
+      const users = await getUsers()
+      console.log('All users from database:', users.map(u => ({ username: u.username, id: u.id })))
+      
+      const user = users.find(u => u.username === username && u.password === password)
 
-    if (user) {
-      // Remove password from user object before storing
-      const { password: _, ...userWithoutPassword } = user
-      setCurrentUser(userWithoutPassword)
-      navigate('/')
-    } else {
-      setError('Invalid username or password')
+      if (user) {
+        // Remove password from user object before storing
+        const { password: _, ...userWithoutPassword } = user
+        setCurrentUser(userWithoutPassword)
+        navigate('/')
+      } else {
+        console.log('Login failed - User not found or password incorrect')
+        setError('Invalid username or password')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('Error connecting to database. Please try again.')
     }
   }
 
@@ -134,9 +116,7 @@ function Login() {
         </form>
         
         <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f9fafb', borderRadius: '8px', fontSize: '0.875rem', color: '#6b7280' }}>
-          <strong>Default Admin Credentials:</strong><br />
-          Username: <code>admin</code><br />
-          Password: <code>admin123</code>
+          <strong>Note:</strong> Please contact your administrator to get login credentials.
         </div>
       </div>
     </div>

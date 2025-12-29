@@ -31,14 +31,18 @@ function StockReturn() {
     loadData()
   }, [])
 
-  const loadData = () => {
-    setItems(getItems())
-    setStockReturns(getStockReturns())
+  const loadData = async () => {
+    const [loadedItems, loadedReturns] = await Promise.all([
+      getItems(),
+      getStockReturns()
+    ])
+    setItems(loadedItems)
+    setStockReturns(loadedReturns)
   }
 
-  const generateUniqueReturnNumber = () => {
+  const generateUniqueReturnNumber = async () => {
     // Always get fresh data from storage
-    const currentReturns = getStockReturns()
+    const currentReturns = await getStockReturns()
     const existingNumbers = new Set()
     
     // Collect all existing return numbers
@@ -165,7 +169,7 @@ function StockReturn() {
     setEditValues({ quantity: '', price: '' })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (returnItems.length === 0) {
       alert('Please add at least one item')
@@ -188,11 +192,11 @@ function StockReturn() {
             }
           : r
       )
-      saveStockReturns(updatedReturns)
+      await saveStockReturns(updatedReturns)
       setEditingReturn(null)
     } else {
       // Generate unique return number on save for new return
-      const returnNumber = generateUniqueReturnNumber()
+      const returnNumber = await generateUniqueReturnNumber()
       const newReturn = {
         id: Date.now().toString(),
         returnNumber: returnNumber,
@@ -204,10 +208,10 @@ function StockReturn() {
         createdAt: new Date().toISOString(),
       }
       const updatedReturns = [newReturn, ...stockReturns]
-      saveStockReturns(updatedReturns)
+      await saveStockReturns(updatedReturns)
     }
     
-    loadData()
+    await loadData()
     resetForm()
     setShowModal(false)
   }

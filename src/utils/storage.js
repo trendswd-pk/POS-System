@@ -4,8 +4,23 @@ import { supabase } from './supabase'
 // Check if Supabase is configured
 const isSupabaseConfigured = () => {
   try {
-    return supabase && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+    const hasUrl = import.meta.env.VITE_SUPABASE_URL
+    const hasKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+    const hasClient = supabase !== null && supabase !== undefined
+    
+    if (!hasUrl || !hasKey) {
+      console.log('Supabase not configured: Missing environment variables')
+      return false
+    }
+    
+    if (!hasClient) {
+      console.log('Supabase not configured: Client not initialized')
+      return false
+    }
+    
+    return true
   } catch (error) {
+    console.error('Error checking Supabase configuration:', error)
     return false
   }
 }
@@ -29,7 +44,7 @@ export const getItems = async () => {
         id: item.id,
         code: item.code,
         name: item.name,
-        unit: item.unit,
+        category: item.category || '',
         purchasePrice: parseFloat(item.purchase_price) || 0,
         salePrice: parseFloat(item.sale_price) || 0,
         createdAt: item.created_at,
@@ -49,6 +64,8 @@ export const getItems = async () => {
 export const saveItems = async (items) => {
   if (isSupabaseConfigured()) {
     try {
+      console.log('Saving items to Supabase...', items.length, 'items')
+      
       // Delete all existing items and insert new ones
       const { error: deleteError } = await supabase
         .from('items')
@@ -56,38 +73,54 @@ export const saveItems = async (items) => {
         .neq('id', '00000000-0000-0000-0000-000000000000') // Delete all
       
       if (deleteError) {
-        console.error('Error deleting items:', deleteError)
+        console.error('Error deleting items from Supabase:', deleteError)
+        console.log('Falling back to localStorage')
+        localStorage.setItem('pos_items', JSON.stringify(items))
+        return
       }
+      
+      console.log('Deleted existing items from Supabase')
       
       // Convert to Supabase format and insert
       const itemsToInsert = items.map(item => ({
         code: item.code,
         name: item.name,
-        unit: item.unit,
+        category: item.category || '', // Category field
         purchase_price: parseFloat(item.purchasePrice) || 0,
         sale_price: parseFloat(item.salePrice) || 0
       }))
       
+      console.log('Items to insert:', itemsToInsert)
+      
       if (itemsToInsert.length > 0) {
-        const { error: insertError } = await supabase
+        const { data, error: insertError } = await supabase
           .from('items')
           .insert(itemsToInsert)
+          .select()
         
         if (insertError) {
-          console.error('Error inserting items:', insertError)
-          throw insertError
+          console.error('Error inserting items to Supabase:', insertError)
+          console.error('Error details:', JSON.stringify(insertError, null, 2))
+          console.log('Falling back to localStorage')
+          localStorage.setItem('pos_items', JSON.stringify(items))
+          return
         }
+        
+        console.log('✅ Items saved to Supabase successfully!', data.length, 'items inserted')
+      } else {
+        console.log('No items to insert')
       }
       
       return
     } catch (error) {
       console.error('Error in saveItems:', error)
-      throw error
+      console.log('Falling back to localStorage')
+      localStorage.setItem('pos_items', JSON.stringify(items))
     }
+  } else {
+    console.log('Supabase not configured, saving to localStorage')
+    localStorage.setItem('pos_items', JSON.stringify(items))
   }
-  
-  // Fallback to localStorage
-  localStorage.setItem('pos_items', JSON.stringify(items))
 }
 
 // ==================== STOCK PURCHASES ====================
@@ -403,16 +436,20 @@ export const saveSaleReturns = async (returns) => {
 export const getUsers = async () => {
   if (isSupabaseConfigured()) {
     try {
+      console.log('Fetching users from Supabase...')
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .order('created_at', { ascending: false })
       
       if (error) {
-        console.error('Error fetching users:', error)
-        return []
+        console.error('Error fetching users from Supabase:', error)
+        console.log('Falling back to localStorage')
+        const users = localStorage.getItem('pos_users')
+        return users ? JSON.parse(users) : []
       }
       
+      console.log('Users fetched from Supabase:', data.length)
       return data.map(user => ({
         id: user.id,
         username: user.username,
@@ -424,10 +461,13 @@ export const getUsers = async () => {
       }))
     } catch (error) {
       console.error('Error in getUsers:', error)
-      return []
+      console.log('Falling back to localStorage')
+      const users = localStorage.getItem('pos_users')
+      return users ? JSON.parse(users) : []
     }
   }
   
+  console.log('Supabase not configured, using localStorage')
   const users = localStorage.getItem('pos_users')
   return users ? JSON.parse(users) : []
 }

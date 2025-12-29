@@ -32,15 +32,20 @@ function SaleReturn() {
     loadData()
   }, [])
 
-  const loadData = () => {
-    setItems(getItems())
-    setSaleReturns(getSaleReturns())
-    setSales(getSales())
+  const loadData = async () => {
+    const [loadedItems, loadedReturns, loadedSales] = await Promise.all([
+      getItems(),
+      getSaleReturns(),
+      getSales()
+    ])
+    setItems(loadedItems)
+    setSaleReturns(loadedReturns)
+    setSales(loadedSales)
   }
 
-  const generateUniqueReturnNumber = () => {
+  const generateUniqueReturnNumber = async () => {
     // Always get fresh data from storage
-    const currentReturns = getSaleReturns()
+    const currentReturns = await getSaleReturns()
     const existingNumbers = new Set()
     
     // Collect all existing return numbers
@@ -167,7 +172,7 @@ function SaleReturn() {
     setEditValues({ quantity: '', price: '' })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (returnItems.length === 0) {
       alert('Please add at least one item')
@@ -190,11 +195,11 @@ function SaleReturn() {
             }
           : r
       )
-      saveSaleReturns(updatedReturns)
+      await saveSaleReturns(updatedReturns)
       setEditingReturn(null)
     } else {
       // Generate unique return number on save for new return
-      const returnNumber = generateUniqueReturnNumber()
+      const returnNumber = await generateUniqueReturnNumber()
       const newReturn = {
         id: Date.now().toString(),
         customerName: formData.customerName,
@@ -206,10 +211,10 @@ function SaleReturn() {
         createdAt: new Date().toISOString(),
       }
       const updatedReturns = [newReturn, ...saleReturns]
-      saveSaleReturns(updatedReturns)
+      await saveSaleReturns(updatedReturns)
     }
     
-    loadData()
+    await loadData()
     resetForm()
     setShowModal(false)
   }

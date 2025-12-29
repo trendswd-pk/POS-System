@@ -16,32 +16,9 @@ function Users() {
   })
 
   useEffect(() => {
-    const initialize = async () => {
-      await loadUsers()
-      // Create default admin user if no users exist
-      const existingUsers = await getUsers()
-      if (existingUsers.length === 0) {
-        const adminUser = {
-          id: Date.now().toString(),
-          username: 'admin',
-          password: 'admin123',
-          fullName: 'Administrator',
-          permissions: {
-            items: true,
-            stockPurchase: true,
-            stockReturn: true,
-            sale: true,
-            saleReturn: true,
-            closingStock: true,
-            users: true,
-          },
-          createdAt: new Date().toISOString(),
-        }
-        await saveUsers([adminUser])
-        setUsers([adminUser])
-      }
-    }
-    initialize()
+    const user = getCurrentUser()
+    setCurrentUser(user)
+    loadUsers()
   }, [])
 
   const loadUsers = async () => {

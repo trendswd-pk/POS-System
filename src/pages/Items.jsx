@@ -72,10 +72,17 @@ function Items() {
       updatedItems = [...items, newItem]
     }
 
-    await saveItems(updatedItems)
-    setItems(updatedItems)
-    setShowModal(false)
-    resetForm()
+    try {
+      await saveItems(updatedItems)
+      setItems(updatedItems)
+      setShowModal(false)
+      resetForm()
+      // Reload items from database to ensure sync
+      await loadItems()
+    } catch (error) {
+      console.error('Error saving item:', error)
+      alert('Error saving item. Please check console for details.')
+    }
   }
 
   const resetForm = () => {

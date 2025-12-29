@@ -12,12 +12,14 @@ function ClosingStock() {
     loadStockData()
   }, [])
 
-  const loadStockData = () => {
-    const allItems = getItems()
-    const stockInfo = allItems.map(item => ({
-      ...item,
-      currentStock: getCurrentStock(item.id),
-    }))
+  const loadStockData = async () => {
+    const allItems = await getItems()
+    const stockInfo = await Promise.all(
+      allItems.map(async (item) => ({
+        ...item,
+        currentStock: await getCurrentStock(item.id),
+      }))
+    )
     setItems(allItems)
     setStockData(stockInfo)
   }
