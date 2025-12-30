@@ -1,13 +1,24 @@
 {
   "name": "pos-system",
   "version": "1.0.0",
-  "description": "Complete POS System for Shops",
+  "description": "Complete Point of Sale (POS) System for retail shops with inventory management, sales tracking, and user management",
   "type": "module",
+  "keywords": [
+    "pos",
+    "point-of-sale",
+    "inventory",
+    "retail",
+    "react",
+    "supabase",
+    "e-commerce"
+  ],
+  "author": "",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "hash-passwords": "node hash-existing-users.js"
+    "migrate-users": "node scripts/migrate-users.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",

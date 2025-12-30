@@ -14,6 +14,9 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Enable pgcrypto extension for password hashing
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- =====================================================
 -- CREATE TABLES
 -- =====================================================
@@ -116,17 +119,88 @@ SET category = ''
 WHERE category IS NULL;
 
 -- =====================================================
--- DISABLE ROW LEVEL SECURITY (For Development)
+-- ENABLE ROW LEVEL SECURITY (RLS)
 -- =====================================================
--- Note: For production, you may want to enable RLS
--- and create appropriate policies
+-- Enable RLS on all tables for security
+-- Policies are created below to allow application access
 
-ALTER TABLE users DISABLE ROW LEVEL SECURITY;
-ALTER TABLE items DISABLE ROW LEVEL SECURITY;
-ALTER TABLE stock_purchases DISABLE ROW LEVEL SECURITY;
-ALTER TABLE stock_returns DISABLE ROW LEVEL SECURITY;
-ALTER TABLE sales DISABLE ROW LEVEL SECURITY;
-ALTER TABLE sale_returns DISABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_purchases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_returns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sales ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sale_returns ENABLE ROW LEVEL SECURITY;
+
+-- =====================================================
+-- CREATE RLS POLICIES
+-- =====================================================
+-- Policies to allow full access (SELECT, INSERT, UPDATE, DELETE)
+-- for all tables using the anon key
+-- Note: These policies allow public access since the app uses
+-- custom authentication with the anon key
+
+DO $$
+BEGIN
+  -- Users Table Policy
+  BEGIN
+    CREATE POLICY allow_all_users ON users
+      FOR ALL
+      USING (true)
+      WITH CHECK (true);
+  EXCEPTION WHEN duplicate_object THEN
+    RAISE NOTICE 'Policy allow_all_users already exists, skipping...';
+  END;
+
+  -- Items Table Policy
+  BEGIN
+    CREATE POLICY allow_all_items ON items
+      FOR ALL
+      USING (true)
+      WITH CHECK (true);
+  EXCEPTION WHEN duplicate_object THEN
+    RAISE NOTICE 'Policy allow_all_items already exists, skipping...';
+  END;
+
+  -- Stock Purchases Table Policy
+  BEGIN
+    CREATE POLICY allow_all_stock_purchases ON stock_purchases
+      FOR ALL
+      USING (true)
+      WITH CHECK (true);
+  EXCEPTION WHEN duplicate_object THEN
+    RAISE NOTICE 'Policy allow_all_stock_purchases already exists, skipping...';
+  END;
+
+  -- Stock Returns Table Policy
+  BEGIN
+    CREATE POLICY allow_all_stock_returns ON stock_returns
+      FOR ALL
+      USING (true)
+      WITH CHECK (true);
+  EXCEPTION WHEN duplicate_object THEN
+    RAISE NOTICE 'Policy allow_all_stock_returns already exists, skipping...';
+  END;
+
+  -- Sales Table Policy
+  BEGIN
+    CREATE POLICY allow_all_sales ON sales
+      FOR ALL
+      USING (true)
+      WITH CHECK (true);
+  EXCEPTION WHEN duplicate_object THEN
+    RAISE NOTICE 'Policy allow_all_sales already exists, skipping...';
+  END;
+
+  -- Sale Returns Table Policy
+  BEGIN
+    CREATE POLICY allow_all_sale_returns ON sale_returns
+      FOR ALL
+      USING (true)
+      WITH CHECK (true);
+  EXCEPTION WHEN duplicate_object THEN
+    RAISE NOTICE 'Policy allow_all_sale_returns already exists, skipping...';
+  END;
+END $$;
 
 -- =====================================================
 -- CREATE DEFAULT ADMIN USER
@@ -157,6 +231,39 @@ VALUES (
 ON CONFLICT (username) DO NOTHING;  -- Prevents error if admin already exists
 
 -- =====================================================
+-- HASH EXISTING USER PASSWORDS
+-- =====================================================
+-- This will hash all plain text passwords in the users table
+-- using bcrypt. Already hashed passwords will be skipped.
+
+DO $$
+DECLARE
+    user_record RECORD;
+    hashed_pwd TEXT;
+BEGIN
+    -- Loop through all users with plain text passwords
+    FOR user_record IN 
+        SELECT id, username, password 
+        FROM users 
+        WHERE password NOT LIKE '$2a$%' 
+          AND password NOT LIKE '$2b$%'
+    LOOP
+        -- Hash the password using bcrypt (cost factor 10)
+        hashed_pwd := crypt(user_record.password, gen_salt('bf', 10));
+        
+        -- Update the user with hashed password
+        UPDATE users 
+        SET password = hashed_pwd,
+            updated_at = NOW()
+        WHERE id = user_record.id;
+        
+        RAISE NOTICE 'Hashed password for user: %', user_record.username;
+    END LOOP;
+    
+    RAISE NOTICE 'Password hashing completed!';
+END $$;
+
+-- =====================================================
 -- VERIFICATION QUERIES
 -- =====================================================
 
@@ -173,6 +280,19 @@ ORDER BY tablename;
 SELECT id, username, full_name, permissions, created_at 
 FROM users 
 WHERE username = 'admin';
+
+-- Verify all passwords are hashed
+SELECT 
+    id,
+    username,
+    full_name,
+    CASE 
+        WHEN password LIKE '$2a$%' OR password LIKE '$2b$%' THEN 'Hashed ✓'
+        ELSE 'Plain Text ✗'
+    END as password_status,
+    updated_at
+FROM users
+ORDER BY updated_at DESC;
 
 -- =====================================================
 -- SETUP COMPLETE!

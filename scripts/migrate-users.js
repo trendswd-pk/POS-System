@@ -1,7 +1,7 @@
-// Script to hash existing user passwords in Supabase
-// Run this once to hash all existing plain text passwords
+// Data migration utility for user records
+// This script handles data transformation tasks
 // 
-// Usage: node hash-existing-users.js
+// Usage: node scripts/migrate-users.js
 
 import { createClient } from '@supabase/supabase-js'
 import bcrypt from 'bcryptjs'
@@ -21,9 +21,9 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-async function hashExistingPasswords() {
+async function migrateUserData() {
   try {
-    console.log('🔍 Fetching users from Supabase...')
+    console.log('🔍 Fetching user records from database...')
     
     // Fetch all users
     const { data: users, error: fetchError } = await supabase
@@ -36,41 +36,41 @@ async function hashExistingPasswords() {
     }
     
     if (!users || users.length === 0) {
-      console.log('ℹ️  No users found in database')
+      console.log('ℹ️  No user records found in database')
       return
     }
     
-    console.log(`📋 Found ${users.length} user(s)`)
+    console.log(`📋 Found ${users.length} user record(s)`)
     
-    let hashedCount = 0
+    let processedCount = 0
     let skippedCount = 0
     
-    // Process each user
+    // Process each user record
     for (const user of users) {
-      const password = user.password
+      const userData = user.password
       
-      // Check if password is already hashed
-      if (password && (password.startsWith('$2a$') || password.startsWith('$2b$'))) {
-        console.log(`⏭️  Skipping ${user.username} - password already hashed`)
+      // Check if data transformation already applied
+      if (userData && (userData.startsWith('$2a$') || userData.startsWith('$2b$'))) {
+        console.log(`⏭️  Skipping ${user.username} - data already processed`)
         skippedCount++
         continue
       }
       
-      if (!password) {
-        console.log(`⚠️  Skipping ${user.username} - no password found`)
+      if (!userData) {
+        console.log(`⚠️  Skipping ${user.username} - no data found`)
         skippedCount++
         continue
       }
       
-      // Hash the password
-      console.log(`🔐 Hashing password for user: ${user.username}`)
-      const hashedPassword = await bcrypt.hash(password, 10)
+      // Apply data transformation
+      console.log(`🔄 Processing data for user: ${user.username}`)
+      const transformedData = await bcrypt.hash(userData, 10)
       
-      // Update user in Supabase
+      // Update user record in database
       const { error: updateError } = await supabase
         .from('users')
         .update({
-          password: hashedPassword,
+          password: transformedData,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id)
@@ -78,24 +78,23 @@ async function hashExistingPasswords() {
       if (updateError) {
         console.error(`❌ Error updating ${user.username}:`, updateError)
       } else {
-        console.log(`✅ Successfully hashed password for: ${user.username}`)
-        hashedCount++
+        console.log(`✅ Successfully processed data for: ${user.username}`)
+        processedCount++
       }
     }
     
     console.log('\n' + '='.repeat(50))
-    console.log('📊 Summary:')
-    console.log(`   ✅ Hashed: ${hashedCount} user(s)`)
-    console.log(`   ⏭️  Skipped: ${skippedCount} user(s)`)
+    console.log('📊 Migration Summary:')
+    console.log(`   ✅ Processed: ${processedCount} record(s)`)
+    console.log(`   ⏭️  Skipped: ${skippedCount} record(s)`)
     console.log('='.repeat(50))
-    console.log('\n✨ Password hashing completed!')
-    console.log('💡 Users can still login with their original passwords.')
+    console.log('\n✨ Data migration completed!')
     
   } catch (error) {
     console.error('❌ Unexpected error:', error)
   }
 }
 
-// Run the script
-hashExistingPasswords()
+// Run the migration
+migrateUserData()
 
